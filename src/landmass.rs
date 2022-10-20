@@ -4,11 +4,6 @@ use image::{ImageBuffer, Rgba, RgbaImage};
 
 type Vec2f = (f32, f32);
 
-struct Level {
-    height: u32,
-    color: image::Rgba<u8>
-}
-
 pub struct Landmass {
     pub seed: u64,
     pub size: u32,
@@ -22,15 +17,20 @@ impl Landmass {
 			palette: image::RgbaImage) -> Landmass {
 	let mut lm = Landmass { seed, size, data: vec![],
 				img: RgbaImage::new(size, size),
-				palette };
+				palette  };
 	lm.update_map(&(0.0, 0.0), 1.0);	
 	lm
     }
-    
+
+    #[allow(dead_code)]    
     pub fn new(size: u32, seed: u64) -> Landmass {
 	let palette = gen_palette();
-	_ = palette.save("palette.png");
 	Landmass::with_palette(size, seed, palette)
+    }
+
+    #[allow(dead_code)] 
+    fn save_palette(&self) {
+	_ = self.palette.save("palette.png");
     }
     
     pub fn update_map(&mut self, pos: &Vec2f, scale: f32) {
@@ -69,7 +69,13 @@ impl Landmass {
 
 }
 
+
 fn gen_palette() -> image::RgbaImage {
+    struct Level {
+	height: u32,
+	color: image::Rgba<u8>
+    }
+
     let levels =
 	vec![ Level { height: 0,   color: Rgba([ 10,  10, 80, 255]) },
 	      Level { height: 5,   color: Rgba([150, 150, 50,  255]) },
