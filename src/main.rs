@@ -7,6 +7,7 @@ mod mouse_inputs;
 use bevy::prelude::*;
 use bevy::diagnostic::{LogDiagnosticsPlugin,FrameTimeDiagnosticsPlugin};
 use bevy::pbr::StandardMaterial;
+use  bevy::render::render_resource::Face;
 use crate::terrain_task::{add_terrain,handle_terrain_task};
 use crate::camera::{animate_camera,make_camera};
 use crate::mouse_inputs::{mouse_button_events,mouse_move_events};
@@ -24,6 +25,9 @@ const CAM_RY: f32 = if INV_Y { 1.0 } else { -1.0 } * 1.0;
 pub struct Palette(image::RgbaImage);
 pub struct TerrainSize(u32);
 
+#[derive(Component,Default,Debug)]
+pub struct GenTerrain { seed: u64 }
+
 fn main() {
     let palette = image::open("assets/palette.png")
 	.expect("palette file not found in asset directory")
@@ -37,6 +41,7 @@ fn main() {
 	.insert_resource(Palette(palette))
 	.insert_resource(TerrainSize(SIZE))
         .add_startup_system(setup)
+	.add_system(add_terrain)
 	.add_system(handle_terrain_task)
 	.add_system(animate_camera)
 	.add_system(mouse_button_events)
@@ -46,7 +51,6 @@ fn main() {
 
 fn setup(
     mut commands: Commands,
-    palette: Res<Palette>,
     size: Res<TerrainSize>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -63,6 +67,8 @@ fn setup(
     // Sky sphere
     let sky_mat = StandardMaterial {
 	base_color_texture: Some(asset_server.load("sky.png")),
+	double_sided: true,
+	cull_mode: Some(Face::Front),
 	unlit: true,
 	..default()
     };    
@@ -71,7 +77,6 @@ fn setup(
 	    Mesh::from(shape::Icosphere { radius: size.0 as f32 * 10.0,
 					  subdivisions: 1 })),
 	material: materials.add(sky_mat),
-	transform: Transform::from_scale(Vec3::new(1.0, -1.0, 1.0)),
 	..default()
     });
 
@@ -96,5 +101,5 @@ fn setup(
 	brightness: 4.0
     });
 
-    add_terrain(&mut commands, &palette, &size, DEFAULT_SEED);
+    commands.spawn().insert(GenTerrain { seed: DEFAULT_SEED });
 }

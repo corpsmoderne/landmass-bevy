@@ -5,7 +5,7 @@ use bevy::tasks::{Task,AsyncComputeTaskPool};
 use futures_lite::future;
 use crate::landmass::Landmass;
 use crate::gen_terrain::gen_mesh_terrain;
-use crate::{Palette,TerrainSize};
+use crate::{Palette,TerrainSize,GenTerrain};
 
 #[derive(Component)]
 pub struct ComputeLandmass(Task<(u32,Mesh,Image)>);
@@ -21,32 +21,41 @@ pub struct LandMassBundle {
 }
 
 pub fn add_terrain(
-    commands: &mut Commands,
-    res_palette: &Res<Palette>,
-    res_size: &Res<TerrainSize>,
-    seed: u64
+    mut commands: Commands,
+    res_palette: Res<Palette>,
+    res_size: Res<TerrainSize>,
+    mut windows: ResMut<Windows>,
+    query: Query<(Entity, &GenTerrain)>,    
 ) {
-    info!("new terrain seed: 0x{:x}", seed);
-    let thread_pool = AsyncComputeTaskPool::get();
-    let palette = res_palette.0.clone();
-    let size = res_size.0;
-    let task = thread_pool.spawn(async move {
-	let landmass = Landmass::with_palette(size, seed, palette);
-	let mesh = gen_mesh_terrain(&landmass);
+    for (entity, GenTerrain { seed: s }) in &query {
+	let thread_pool = AsyncComputeTaskPool::get();
+	let palette = res_palette.0.clone();
+	let size = res_size.0;
+	let seed = *s;
 	
-	let tex = Image::new_fill(
-	    Extent3d { width: landmass.img.width(),
-		       height: landmass.img.height(),
-		       depth_or_array_layers: 1 },
-	    TextureDimension::D2,
-	    landmass.img.as_raw(),
-	    TextureFormat::Rgba8UnormSrgb
-	);
-
-	(size, mesh, tex)
-    });
-    
-    commands.spawn().insert(ComputeLandmass(task));
+	info!("new terrain seed: 0x{:x}", seed);
+	let task = thread_pool.spawn(async move {
+	    let landmass = Landmass::with_palette(size, seed, palette);
+	    let mesh = gen_mesh_terrain(&landmass);
+	    
+	    let tex = Image::new_fill(
+		Extent3d { width: landmass.img.width(),
+			   height: landmass.img.height(),
+			   depth_or_array_layers: 1 },
+		TextureDimension::D2,
+		landmass.img.as_raw(),
+		TextureFormat::Rgba8UnormSrgb
+	    );
+	    
+	    (size, mesh, tex)
+	});
+	
+	commands.entity(entity).despawn();	
+	commands.spawn().insert(ComputeLandmass(task));
+	if let Some(window) = windows.get_primary_mut() {
+            window.set_cursor_icon(CursorIcon::Wait);
+	}
+    }
 }
 
 pub fn handle_terrain_task(
@@ -55,6 +64,7 @@ pub fn handle_terrain_task(
     mut meshes: ResMut<Assets<Mesh>>,
     mut images: ResMut<Assets<Image>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut windows: ResMut<Windows>,
 ) {
     for (entity, mut task) in &mut tasks {
         if let Some((size, mesh,tex)) =
@@ -80,6 +90,9 @@ pub fn handle_terrain_task(
 		});
 		
 		commands.entity(entity).despawn();
+		if let Some(window) = windows.get_primary_mut() {
+		    window.set_cursor_icon(CursorIcon::Default);
+		}
             }
     }
 }

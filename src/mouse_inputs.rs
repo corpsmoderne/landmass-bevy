@@ -3,8 +3,8 @@ use bevy::input::mouse::{MouseButtonInput,MouseWheel,MouseMotion};
 use bevy::input::ButtonState;
 
 use crate::camera::CamState;
-use crate::terrain_task::{add_terrain, IsLandMass};
-use crate::{Palette, TerrainSize};
+use crate::terrain_task::IsLandMass;
+use crate::GenTerrain;
 
 pub fn mouse_move_events(
     buttons: Res<Input<MouseButton>>,    
@@ -35,8 +35,6 @@ pub fn mouse_move_events(
 
 pub fn mouse_button_events(
     mut commands: Commands,
-    palette: Res<Palette>,
-    size: Res<TerrainSize>,
     mut mouse_button_events: EventReader<MouseButtonInput>,
     query: Query<(Entity, &IsLandMass)>,
 ) {
@@ -45,11 +43,11 @@ pub fn mouse_button_events(
 	    event.state == ButtonState::Pressed {
 	    } else if event.button == MouseButton::Right &&
 	    event.state == ButtonState::Pressed {
-		let (entity,_) = query.single();
-		commands.entity(entity).despawn();
-		
-		add_terrain(&mut commands, &palette, &size,
-			    rand::random::<u64>());
+		for (entity,_) in &query {
+		    commands.entity(entity).despawn();
+		    commands.spawn()
+			.insert(GenTerrain { seed: rand::random() });
+		}
 	    }
     }
 }
