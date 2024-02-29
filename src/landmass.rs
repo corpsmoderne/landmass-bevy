@@ -2,6 +2,9 @@ use rand::prelude::{Rng,StdRng,SeedableRng};
 use noise::{NoiseFn,Perlin};
 use image::{ImageBuffer, Rgba, RgbaImage};
 
+const A : f32 = 75.0;
+const B : f32 = 40.0;
+
 type Vec2f = (f32, f32);
 
 pub struct Landmass {
@@ -9,7 +12,7 @@ pub struct Landmass {
     pub size: u32,
     pub data: Vec<f32>,
     pub img: image::RgbaImage,
-    pub palette: image::RgbaImage
+    pub palette: image::RgbaImage,
 }
 
 impl Landmass {
@@ -22,7 +25,7 @@ impl Landmass {
 	lm
     }
 
-    #[allow(dead_code)]    
+    #[allow(dead_code)]
     pub fn new(size: u32, seed: u64) -> Landmass {
 	let palette = gen_palette();
 	Landmass::with_palette(size, seed, palette)
@@ -45,13 +48,13 @@ impl Landmass {
     fn gen_land(&self, p: &Vec2f, scale: f32) -> Vec<f32> {
 	let mut rng = StdRng::seed_from_u64(self.seed);
 	let noise = Perlin::new(self.seed as u32);
-	let a = 50.0 + rng.gen::<f32>() * 75.0;
-	let b = rng.gen::<f32>() * 40.0;
+	let a = 50.0 + rng.gen::<f32>() * A;
+	let b = rng.gen::<f32>() * B;
 	let pos = *p;
 	let sea_level : f64 = rng.gen::<f64>() * 240.0;
 	
 	(0..(self.size*self.size)).into_iter()
-	    .map(|i| {
+	    .map( |i| {
 		let x = - ((self.size/2) as f32) + (i % self.size) as f32;
 		let y = - ((self.size/2) as f32) + (i / self.size) as f32;
 		let p = ((pos.0 + x * scale) / a,
@@ -68,7 +71,6 @@ impl Landmass {
     }
 
 }
-
 
 fn gen_palette() -> image::RgbaImage {
     struct Level {

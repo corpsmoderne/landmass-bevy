@@ -4,7 +4,7 @@ use bevy::input::ButtonState;
 
 use crate::camera::CamState;
 use crate::terrain_task::IsLandMass;
-use crate::GenTerrain;
+use crate::GenTerrainEvent;
 
 pub fn mouse_move_events(
     buttons: Res<Input<MouseButton>>,    
@@ -30,11 +30,11 @@ pub fn mouse_move_events(
 	mouse_motion_events.is_empty() {
 	    cam_state.vel = Vec2::ZERO;
 	}
-    
 }
 
 pub fn mouse_button_events(
     mut commands: Commands,
+    mut terrain_events: EventWriter<GenTerrainEvent>,
     mut mouse_button_events: EventReader<MouseButtonInput>,
     query: Query<(Entity, &IsLandMass)>,
 ) {
@@ -45,8 +45,8 @@ pub fn mouse_button_events(
 	    event.state == ButtonState::Pressed {
 		for (entity,_) in &query {
 		    commands.entity(entity).despawn();
-		    commands.spawn()
-			.insert(GenTerrain { seed: rand::random() });
+		    terrain_events
+			.send(GenTerrainEvent { seed: rand::random() });
 		}
 	    }
     }

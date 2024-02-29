@@ -18,9 +18,9 @@ pub struct CamState {
 
 pub fn animate_camera(
     time: Res<Time>,
-    mut query: Query<(&mut Transform, &mut Camera3d, &mut CamState)>
+    mut query: Query<(&mut Transform, &mut CamState)>
 ) {
-    let (mut transform, _camera, mut cam_state) = query.single_mut();
+    let (mut transform, mut cam_state) = query.single_mut();
 
     let v = cam_state.vel * time.delta_seconds();
     cam_state.rot += v;
@@ -41,11 +41,7 @@ pub fn make_camera(
     dist: f32,    
     inv_x: bool, inv_y: bool) -> MyCamBundle {
     MyCamBundle {
-	cam3d: Camera3dBundle {
-	    transform: Transform::from_xyz(-175.0, 64.0, -175.0)
-		.looking_at(Vec3::ZERO, Vec3::Y),
-            ..default()
-	},
+	cam3d: Camera3dBundle { ..default() },
 	cam_state: CamState { rot,
 			      vel: Vec2::ZERO,
 			      dist,

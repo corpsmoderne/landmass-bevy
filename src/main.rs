@@ -25,8 +25,7 @@ const CAM_RY: f32 = if INV_Y { 1.0 } else { -1.0 } * 1.0;
 pub struct Palette(image::RgbaImage);
 pub struct TerrainSize(u32);
 
-#[derive(Component,Default,Debug)]
-pub struct GenTerrain { seed: u64 }
+pub struct GenTerrainEvent { seed: u64 }
 
 fn main() {
     let palette = image::open("assets/palette.png")
@@ -40,6 +39,7 @@ fn main() {
 	.insert_resource(ClearColor(Color::rgb(0.3, 0.6, 1.0)))
 	.insert_resource(Palette(palette))
 	.insert_resource(TerrainSize(SIZE))
+	.add_event::<GenTerrainEvent>()
         .add_startup_system(setup)
 	.add_system(add_terrain)
 	.add_system(handle_terrain_task)
@@ -51,6 +51,7 @@ fn main() {
 
 fn setup(
     mut commands: Commands,
+    mut terrain_events: EventWriter<GenTerrainEvent>,
     size: Res<TerrainSize>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -71,15 +72,15 @@ fn setup(
 	cull_mode: Some(Face::Front),
 	unlit: true,
 	..default()
-    };    
+    };
+    let sphere = Mesh::from(shape::Icosphere { radius: size.0 as f32 * 10.0,
+					       subdivisions: 1 });
     commands.spawn_bundle(PbrBundle {    
-	mesh: meshes.add(
-	    Mesh::from(shape::Icosphere { radius: size.0 as f32 * 10.0,
-					  subdivisions: 1 })),
+	mesh: meshes.add(sphere),
 	material: materials.add(sky_mat),
 	..default()
     });
-
+    
     // Camera
     commands.spawn_bundle(make_camera(Vec2::new(CAM_RX, CAM_RY),
 				      CAM_DIST, INV_X, INV_Y));
@@ -101,5 +102,5 @@ fn setup(
 	brightness: 4.0
     });
 
-    commands.spawn().insert(GenTerrain { seed: DEFAULT_SEED });
+    terrain_events.send(GenTerrainEvent { seed: DEFAULT_SEED });
 }

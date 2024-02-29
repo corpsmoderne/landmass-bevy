@@ -5,7 +5,7 @@ use bevy::tasks::{Task,AsyncComputeTaskPool};
 use futures_lite::future;
 use crate::landmass::Landmass;
 use crate::gen_terrain::gen_mesh_terrain;
-use crate::{Palette,TerrainSize,GenTerrain};
+use crate::{Palette,TerrainSize,GenTerrainEvent};
 
 #[derive(Component)]
 pub struct ComputeLandmass(Task<(u32,Mesh,Image)>);
@@ -22,12 +22,12 @@ pub struct LandMassBundle {
 
 pub fn add_terrain(
     mut commands: Commands,
+    mut terrain_events: EventReader<GenTerrainEvent>,
     res_palette: Res<Palette>,
     res_size: Res<TerrainSize>,
     mut windows: ResMut<Windows>,
-    query: Query<(Entity, &GenTerrain)>,    
 ) {
-    for (entity, GenTerrain { seed: s }) in &query {
+    for GenTerrainEvent { seed: s } in terrain_events.iter() {
 	let thread_pool = AsyncComputeTaskPool::get();
 	let palette = res_palette.0.clone();
 	let size = res_size.0;
@@ -50,7 +50,6 @@ pub fn add_terrain(
 	    (size, mesh, tex)
 	});
 	
-	commands.entity(entity).despawn();	
 	commands.spawn().insert(ComputeLandmass(task));
 	if let Some(window) = windows.get_primary_mut() {
             window.set_cursor_icon(CursorIcon::Wait);
@@ -67,10 +66,10 @@ pub fn handle_terrain_task(
     mut windows: ResMut<Windows>,
 ) {
     for (entity, mut task) in &mut tasks {
-        if let Some((size, mesh,tex)) =
+        if let Some((size, mesh, tex)) =
 	    future::block_on(future::poll_once(&mut task.0)) {
 
-		let material = StandardMaterial {
+	    let material = StandardMaterial {
 		    base_color_texture: Some(images.add(tex)),
 		    perceptual_roughness: 0.6,
 		    metallic: 0.0,
